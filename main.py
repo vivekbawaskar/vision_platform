@@ -36,7 +36,13 @@ try:
     from streamlit_webrtc import webrtc_streamer, RTCConfiguration, WebRtcMode
     WEBRTC_AVAILABLE = True
     RTC_CONFIGURATION = RTCConfiguration(
-        {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+        {
+            "iceServers": [
+                {"urls": ["stun:stun.l.google.com:19302"]},
+                {"urls": ["stun:stun1.l.google.com:19302"]},
+                {"urls": ["stun:stun2.l.google.com:19302"]},
+            ]
+        }
     )
 except ImportError:
     WEBRTC_AVAILABLE = False
@@ -305,34 +311,53 @@ def main() -> None:
         allowed = settings.classes or None
         log_to_db = settings.db_logging and db.available
 
+        import threading
+        proc_lock = threading.Lock()
+        cached = {"img": None}
+
         def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
             img = frame.to_ndarray(format="bgr24")
-            try:
-                frame_rgb, detections = detector.process_frame(
-                    img,
-                    conf_threshold=settings.confidence,
-                    allowed_classes=allowed,
-                    track=settings.enable_tracking,
-                )
-            except Exception as exc:
-                logger.error("Inference error: %s", exc)
-                return frame
+            h, w = img.shape[:2]
+            
+            # Fast downscale for inference if resolution is high
+            if w > 640:
+                scale = 640.0 / w
+                infer_img = cv2.resize(img, (640, int(h * scale)), interpolation=cv2.INTER_LINEAR)
+            else:
+                infer_img = img
 
-            if log_to_db:
-                for det in throttle.select(detections):
-                    if writer.submit(
-                        str(det["class_name"]),
-                        float(det["confidence"]),
-                        float(det["x"]),
-                        float(det["y"]),
-                        float(det["w"]),
-                        float(det["h"]),
-                    ):
-                        st.session_state.logged_total += 1
+            # Non-blocking: skip frame if previous inference is still busy
+            if proc_lock.acquire(blocking=False):
+                try:
+                    frame_rgb, detections = detector.process_frame(
+                        infer_img,
+                        conf_threshold=settings.confidence,
+                        allowed_classes=allowed,
+                        track=settings.enable_tracking,
+                    )
+                    annotated_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+                    if annotated_bgr.shape[:2] != (h, w):
+                        annotated_bgr = cv2.resize(annotated_bgr, (w, h), interpolation=cv2.INTER_NEAREST)
+                    cached["img"] = annotated_bgr
 
-            return av.VideoFrame.from_ndarray(
-                cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR), format="bgr24"
-            )
+                    if log_to_db:
+                        for det in throttle.select(detections):
+                            if writer.submit(
+                                str(det["class_name"]),
+                                float(det["confidence"]),
+                                float(det["x"]),
+                                float(det["y"]),
+                                float(det["w"]),
+                                float(det["h"]),
+                            ):
+                                st.session_state.logged_total += 1
+                except Exception as exc:
+                    logger.error("Inference error: %s", exc)
+                finally:
+                    proc_lock.release()
+
+            out_img = cached["img"] if cached["img"] is not None else img
+            return av.VideoFrame.from_ndarray(out_img, format="bgr24")
 
         with elements.video.container():
             st.info("📹 Click **START** below to allow browser camera access for live real-time YOLO detection:")
@@ -341,7 +366,14 @@ def main() -> None:
                 mode=WebRtcMode.SENDRECV,
                 rtc_configuration=RTC_CONFIGURATION,
                 video_frame_callback=video_frame_callback,
-                media_stream_constraints={"video": True, "audio": False},
+                media_stream_constraints={
+                    "video": {
+                        "width": {"ideal": 640, "max": 640},
+                        "height": {"ideal": 480, "max": 480},
+                        "frameRate": {"ideal": 15, "max": 20},
+                    },
+                    "audio": False,
+                },
                 async_processing=True,
             )
         _refresh_data(db, elements, analytics=True)
