@@ -64,9 +64,9 @@ class AppConfig:
     writer_queue_size: int = 2000      # async DB writer buffer
     default_source: str = "Webcam"     # preselected input in the sidebar
 
-    # Backend selection: "mysql" (default), "sqlite", or "auto" (MySQL with
+    # Backend selection: "mysql", "sqlite", or "auto" (default: MySQL with
     # automatic SQLite fallback - handy for hosted demos).
-    db_backend: str = "mysql"
+    db_backend: str = "auto"
     sqlite_path: str = "vision_platform.db"
     db_ssl_ca: str = ""                # CA file for managed MySQL (TLS)
 
@@ -87,7 +87,7 @@ class AppConfig:
             max_display_width=_get_int("MAX_DISPLAY_WIDTH", 960),
             writer_queue_size=_get_int("WRITER_QUEUE_SIZE", 2000),
             default_source=os.getenv("DEFAULT_SOURCE", "Webcam"),
-            db_backend=os.getenv("DB_BACKEND", "mysql").strip().lower(),
+            db_backend=os.getenv("DB_BACKEND", "auto").strip().lower(),
             sqlite_path=os.getenv("SQLITE_PATH", "vision_platform.db"),
             db_ssl_ca=os.getenv("DB_SSL_CA", ""),
         )
