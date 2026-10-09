@@ -19,7 +19,13 @@ from PIL import Image, ImageDraw, ImageFont
 from config import CONFIG, DEFAULT_CONF
 from detector import COCO_CLASSES
 
-SOURCE_OPTIONS = ["Webcam", "Sample Video", "Upload Video", "RTSP Stream"]
+SOURCE_OPTIONS = [
+    "Browser Webcam (Live)",
+    "Sample Video",
+    "Upload Video",
+    "Webcam (Local USB)",
+    "RTSP Stream",
+]
 
 _CSS = """
 <style>
@@ -102,7 +108,11 @@ def _save_upload(uploaded) -> str:
 def _resolve_source(source_type: str) -> Optional[Union[int, str]]:
     """Render the source-specific widget and return the capture argument."""
     sb = st.sidebar
-    if source_type == "Webcam":
+    if source_type == "Browser Webcam (Live)":
+        sb.caption("Uses your device's camera directly in the browser via WebRTC.")
+        return "browser_webrtc"
+
+    if source_type in ("Webcam", "Webcam (Local USB)"):
         return int(sb.number_input("Camera index", 0, 10, 0, 1))
 
     if source_type == "Sample Video":

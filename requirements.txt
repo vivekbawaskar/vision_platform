@@ -5,3 +5,5 @@ streamlit>=1.40.0
 pandas>=2.0.0
 python-dotenv>=1.0.0
 pillow>=10.1.0
+streamlit-webrtc>=0.47.0
+av>=10.0.0

@@ -31,6 +31,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+try:
+    import av
+    from streamlit_webrtc import webrtc_streamer, RTCConfiguration, WebRtcMode
+    WEBRTC_AVAILABLE = True
+    RTC_CONFIGURATION = RTCConfiguration(
+        {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+    )
+except ImportError:
+    WEBRTC_AVAILABLE = False
+    RTC_CONFIGURATION = None
+
 KPI_REFRESH_S = 0.5
 LOG_REFRESH_S = 1.0
 ANALYTICS_REFRESH_S = 5.0
@@ -282,7 +293,59 @@ def main() -> None:
         st.session_state.running = False
         _release_stream()
 
-    if st.session_state.running:
+    if settings.source_type == "Browser Webcam (Live)":
+        if not WEBRTC_AVAILABLE:
+            elements.status.error("streamlit-webrtc is not installed on this server.")
+            ui.show_idle(elements, "Browser Webcam requires streamlit-webrtc")
+            _refresh_data(db, elements, analytics=True)
+            return
+
+        throttle = st.session_state.throttle
+        throttle.interval = settings.log_interval
+        allowed = settings.classes or None
+        log_to_db = settings.db_logging and db.available
+
+        def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
+            img = frame.to_ndarray(format="bgr24")
+            try:
+                frame_rgb, detections = detector.process_frame(
+                    img,
+                    conf_threshold=settings.confidence,
+                    allowed_classes=allowed,
+                    track=settings.enable_tracking,
+                )
+            except Exception as exc:
+                logger.error("Inference error: %s", exc)
+                return frame
+
+            if log_to_db:
+                for det in throttle.select(detections):
+                    if writer.submit(
+                        str(det["class_name"]),
+                        float(det["confidence"]),
+                        float(det["x"]),
+                        float(det["y"]),
+                        float(det["w"]),
+                        float(det["h"]),
+                    ):
+                        st.session_state.logged_total += 1
+
+            return av.VideoFrame.from_ndarray(
+                cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR), format="bgr24"
+            )
+
+        with elements.video.container():
+            st.info("📹 Click **START** below to allow browser camera access for live real-time YOLO detection:")
+            webrtc_streamer(
+                key="browser_webcam_yolo",
+                mode=WebRtcMode.SENDRECV,
+                rtc_configuration=RTC_CONFIGURATION,
+                video_frame_callback=video_frame_callback,
+                media_stream_constraints={"video": True, "audio": False},
+                async_processing=True,
+            )
+        _refresh_data(db, elements, analytics=True)
+    elif st.session_state.running:
         run_pipeline(settings, detector, db, writer, elements)
     else:
         ui.show_idle(elements, "Press ▶ Start to begin detection")
