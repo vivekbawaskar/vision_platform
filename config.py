@@ -62,7 +62,7 @@ class AppConfig:
     sample_video_path: str = "sample.mp4"
     max_display_width: int = 960       # frames are downscaled for the browser
     writer_queue_size: int = 2000      # async DB writer buffer
-    default_source: str = "Webcam"     # preselected input in the sidebar
+    default_source: str = "Sample Video" # preselected input in the sidebar
 
     # Backend selection: "mysql", "sqlite", or "auto" (default: MySQL with
     # automatic SQLite fallback - handy for hosted demos).
@@ -86,7 +86,7 @@ class AppConfig:
             sample_video_path=os.getenv("SAMPLE_VIDEO_PATH", "sample.mp4"),
             max_display_width=_get_int("MAX_DISPLAY_WIDTH", 960),
             writer_queue_size=_get_int("WRITER_QUEUE_SIZE", 2000),
-            default_source=os.getenv("DEFAULT_SOURCE", "Webcam"),
+            default_source=os.getenv("DEFAULT_SOURCE", "Sample Video"),
             db_backend=os.getenv("DB_BACKEND", "auto").strip().lower(),
             sqlite_path=os.getenv("SQLITE_PATH", "vision_platform.db"),
             db_ssl_ca=os.getenv("DB_SSL_CA", ""),
