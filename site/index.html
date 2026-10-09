@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Real-Time Object Detection &amp; Logging Platform</title>
+<meta name="description" content="YOLOv8 + OpenCV + MySQL + Streamlit: live object detection with event logging.">
+<style>
+  :root { --bg:#0f1117; --card:#181b24; --text:#e8eaf0; --muted:#9aa1b2; --accent:#4f8cff; }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#f6f7fb; --card:#fff; --text:#161922; --muted:#566074; --accent:#2563eb; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+         background:var(--bg); color:var(--text); line-height:1.6; }
+  main { max-width: 900px; margin: 0 auto; padding: 56px 20px; }
+  h1 { font-size: clamp(1.8rem, 5vw, 2.8rem); line-height:1.15; margin:0 0 12px; }
+  p.lead { color:var(--muted); font-size:1.1rem; max-width: 640px; }
+  .buttons { display:flex; flex-wrap:wrap; gap:12px; margin: 28px 0 40px; }
+  a.btn { padding: 11px 20px; border-radius: 10px; text-decoration:none; font-weight:600;
+          border:1px solid var(--accent); color: var(--accent); }
+  a.btn.primary { background: var(--accent); color:#fff; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap:16px; }
+  .card { background:var(--card); border:1px solid rgba(128,128,128,.2); border-radius:12px; padding:18px; }
+  .card h3 { margin:0 0 6px; font-size:1.05rem; }
+  .card p { margin:0; color:var(--muted); font-size:.95rem; }
+  h2 { margin: 44px 0 14px; }
+  pre { background:var(--card); padding:16px; border-radius:12px; overflow-x:auto; font-size:.85rem; }
+  footer { margin-top:48px; color:var(--muted); font-size:.85rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Real-Time Object Detection &amp; Logging Platform</h1>
+  <p class="lead">Live YOLOv8 detection from webcam, RTSP or video files, with every
+  event persisted to a database and visualised on a Streamlit dashboard.</p>
+
+  <!-- TODO: replace the three href values below with your real links -->
+  <div class="buttons">
+    <a class="btn primary" href="YOUR_LIVE_APP_URL">Live demo</a>
+    <a class="btn" href="YOUR_GITHUB_REPO_URL">Source on GitHub</a>
+    <a class="btn" href="YOUR_DEMO_VIDEO_URL">Watch the demo video</a>
+  </div>
+
+  <div class="grid">
+    <div class="card"><h3>YOLOv8 inference</h3><p>Lazy streaming inference, confidence slider, class filter and optional ByteTrack tracking.</p></div>
+    <div class="card"><h3>Non-blocking logging</h3><p>Per-class throttling plus a background batch writer keep SQL off the video loop.</p></div>
+    <div class="card"><h3>MySQL or SQLite</h3><p>Parameterised queries, connection pooling and an automatic SQLite fallback.</p></div>
+    <div class="card"><h3>Self-healing video</h3><p>Threaded capture serves the latest frame and reconnects when a camera drops.</p></div>
+  </div>
+
+  <h2>Architecture</h2>
+<pre>VideoStream ─► YOLOObjectDetector ─► DetectionThrottle ─► AsyncLogWriter ─► MySQL / SQLite
+                     └─► annotated frame ─► Streamlit dashboard ◄─ recent logs &amp; analytics</pre>
+
+  <footer>Built with Python, OpenCV, Ultralytics YOLOv8, MySQL and Streamlit.</footer>
+</main>
+</body>
+</html>

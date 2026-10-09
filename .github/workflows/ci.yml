@@ -1,0 +1,14 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies (no PyTorch needed)
+        run: pip install pytest pandas numpy python-dotenv pillow opencv-python-headless
+      - name: Run tests
+        run: pytest -q

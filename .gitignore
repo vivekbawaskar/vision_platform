@@ -1,0 +1,22 @@
+# Secrets
+.env
+
+# Model weights
+*.pt
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Editors
+.vscode/
+.idea/
+
+# Local SQLite databases
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
